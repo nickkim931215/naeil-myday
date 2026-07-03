@@ -40,13 +40,13 @@ export function rejectMessage(info: DayInfo): string {
 
 const STATUS_STYLE: Record<DayStatus, string> = {
   valid:
-    "bg-white text-slate-800 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer dark:bg-white/5 dark:text-slate-100 dark:hover:bg-indigo-500/10",
+    "bg-white/5 text-ivory hover:border-gold/50 hover:bg-gold/10 cursor-pointer",
   weekend:
-    "bg-slate-50 text-slate-300 cursor-not-allowed dark:bg-white/[0.02] dark:text-slate-600",
+    "bg-white/[0.02] text-muted/40 cursor-not-allowed",
   holiday:
-    "bg-rose-50 text-rose-300 cursor-not-allowed dark:bg-rose-500/5 dark:text-rose-400/50",
+    "bg-crimson/10 text-crimson/50 cursor-not-allowed",
   birthday:
-    "bg-amber-50 text-amber-400 cursor-not-allowed dark:bg-amber-500/5 dark:text-amber-400/60",
+    "bg-gold/[0.08] text-gold/55 cursor-not-allowed",
 };
 
 export default function HolidayCalendar({
@@ -80,26 +80,26 @@ export default function HolidayCalendar({
   };
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-black/5 bg-white/80 p-5 shadow-xl shadow-indigo-100 backdrop-blur dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-black/40 backdrop-blur">
       {/* 월 네비게이션 */}
       <div className="mb-4 flex items-center justify-between">
         <button
           type="button"
           onClick={() => setMonth((m) => Math.max(startMonth, m - 1))}
           disabled={month === startMonth}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate-500 transition hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-white/10"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-muted transition hover:bg-white/10 hover:text-ivory disabled:opacity-30"
           aria-label="이전 달"
         >
           ‹
         </button>
-        <div className="text-lg font-extrabold text-slate-800 dark:text-slate-100">
+        <div className="text-lg font-extrabold text-ivory">
           {year}년 {month}월
         </div>
         <button
           type="button"
           onClick={() => setMonth((m) => Math.min(12, m + 1))}
           disabled={month === 12}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate-500 transition hover:bg-slate-100 disabled:opacity-30 dark:hover:bg-white/10"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-muted transition hover:bg-white/10 hover:text-ivory disabled:opacity-30"
           aria-label="다음 달"
         >
           ›
@@ -113,10 +113,8 @@ export default function HolidayCalendar({
             key={label}
             className={
               i === 0
-                ? "text-rose-400"
-                : i === 6
-                  ? "text-blue-400"
-                  : "text-slate-400"
+                ? "text-crimson/80"
+                : "text-muted/70"
             }
           >
             {label}
@@ -140,13 +138,13 @@ export default function HolidayCalendar({
               title={info.reason ?? "순수 평일 — 선택 가능!"}
               className={`relative aspect-square rounded-xl border text-sm font-semibold transition ${
                 isSelected
-                  ? "border-indigo-500 bg-indigo-500 text-white shadow-md"
+                  ? "border-gold bg-gold text-ink shadow-md shadow-gold/20"
                   : `border-transparent ${STATUS_STYLE[info.status]}`
               } ${isShaking ? "animate-shake" : ""}`}
             >
               {info.day}
               {info.status === "valid" && !isSelected && (
-                <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-indigo-400" />
+                <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-gold" />
               )}
             </button>
           );
@@ -154,15 +152,15 @@ export default function HolidayCalendar({
       </div>
 
       {/* 범례 */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-muted">
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-indigo-400" /> 선택 가능(순수 평일)
+          <span className="h-2 w-2 rounded-full bg-gold" /> 선택 가능(순수 평일)
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-rose-300" /> 공휴일
+          <span className="h-2 w-2 rounded-full bg-crimson/70" /> 공휴일
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-amber-300" /> 생일
+          <span className="h-2 w-2 rounded-full bg-gold/40" /> 생일
         </span>
       </div>
     </div>

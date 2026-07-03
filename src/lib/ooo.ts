@@ -1,11 +1,12 @@
 // ============================================================================
 // 나만의 공휴일 — '부재중(OOO)' 상태 짤 생성 (1:1 정사각, 카톡 프로필/피드용)
 // ----------------------------------------------------------------------------
-// 말투(무드) 프리셋을 고르면 공휴일 이름이 들어간 자동응답 멘트가 채워진다.
+// 실제 '일력(日曆·뜯는 달력)' 느낌으로 렌더한다. 선택한 날짜를 큼직하게 보여주고,
+// 그 아래에 말투(무드)별 부재중 자동응답 멘트를 얹는다.
 // 선포문과 마찬가지로 <canvas>에 직접 렌더 — 미리보기 = 저장 이미지, 오프라인 동작.
 // ============================================================================
 
-import { formatKoreanDate } from "./holidays";
+import { WEEKDAY_LABELS, getWeekday } from "./holidays";
 
 export const OOO_W = 1080;
 export const OOO_H = 1080;
@@ -61,7 +62,21 @@ export const VIBES: Vibe[] = [
 
 const SANS =
   "'Malgun Gothic', 'Apple SD Gothic Neo', 'Nanum Gothic', sans-serif";
+const SERIF =
+  "'Batang', 'Nanum Myeongjo', 'AppleMyungjo', 'Malgun Gothic', serif";
 const EMOJI = "'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
+
+// 달력 팔레트 — 웹 테마와 맞춘 크림슨/골드/먹색
+const CAL_RED = "#e5162f"; // 공휴일 빨강(일력 헤더·날짜)
+const INK = "#20242e"; // 먹색 텍스트
+const SUBINK = "#8a8f9c"; // 보조 텍스트
+const GOLD = "#9a6f1e"; // 명칭 강조(밝은 배경용 딥 골드)
+
+const WEEKDAY_EN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const MONTH_EN = [
+  "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+  "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
+];
 
 export interface OOOData {
   /** "YYYY-MM-DD" */
@@ -148,84 +163,130 @@ export function drawOutOfOffice(
     `현재 「${holiday}」을(를) 맞아 자리를 비웠습니다.`;
   const emoji = data.emoji || "🌴";
 
-  // ── 배경 그라데이션 ─────────────────────────────────────────────────────
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#eef2ff");
-  bg.addColorStop(1, "#fde8f3");
+  const [yNum, mNum, dNum] = data.date.split("-").map(Number);
+  const wIdx = getWeekday(data.date);
+  const weekdayKo = WEEKDAY_LABELS[wIdx]; // 예: "금"
+  const weekdayEn = WEEKDAY_EN[wIdx];
+  const monthEn = MONTH_EN[mNum - 1];
+
+  // ── 배경 (은은한 미색) ──────────────────────────────────────────────────
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#f3ede1");
+  bg.addColorStop(1, "#e9e1d2");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // ── 카드 패널 ───────────────────────────────────────────────────────────
+  // ── 달력 종이 패널 ──────────────────────────────────────────────────────
+  const px = 78;
+  const py = 96;
+  const pw = W - px * 2;
+  const ph = H - py * 2 - 30;
+  const radius = 40;
   ctx.save();
-  ctx.shadowColor = "rgba(79,70,229,0.20)";
-  ctx.shadowBlur = 48;
-  ctx.shadowOffsetY = 22;
+  ctx.shadowColor = "rgba(40,30,20,0.28)";
+  ctx.shadowBlur = 46;
+  ctx.shadowOffsetY = 20;
   ctx.fillStyle = "#ffffff";
-  roundRect(ctx, 82, 112, 916, 856, 48);
+  roundRect(ctx, px, py, pw, ph, radius);
   ctx.fill();
   ctx.restore();
 
-  // ── 상단 상태 배지 (🔴 부재중 · OUT OF OFFICE) ──────────────────────────
-  ctx.textBaseline = "middle";
-  const pillY = 208;
-  const pillLabel = "부재중 · OUT OF OFFICE";
-  ctx.font = `700 30px ${SANS}`;
-  const textW = ctx.measureText(pillLabel).width;
-  const pillW = textW + 108;
-  const pillX = cx - pillW / 2;
-  ctx.fillStyle = "#fee2e2";
-  roundRect(ctx, pillX, pillY - 34, pillW, 68, 34);
-  ctx.fill();
-  // 빨간 점
-  ctx.fillStyle = "#ef4444";
-  ctx.beginPath();
-  ctx.arc(pillX + 44, pillY, 12, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#b91c1c";
-  ctx.textAlign = "left";
-  ctx.fillText(pillLabel, pillX + 70, pillY + 1);
+  // ── 상단 빨강 헤더 밴드(연/월) — 패널에 클립해 위 모서리만 둥글게 ────────
+  const headerH = 150;
+  ctx.save();
+  roundRect(ctx, px, py, pw, ph, radius);
+  ctx.clip();
+  ctx.fillStyle = CAL_RED;
+  ctx.fillRect(px, py, pw, headerH);
+  ctx.restore();
 
-  // ── 대표 이모지 ─────────────────────────────────────────────────────────
-  ctx.textAlign = "center";
-  ctx.font = `128px ${EMOJI}`;
-  ctx.fillText(emoji, cx, 372);
-
-  // ── 라벨 + 공휴일 제목 ──────────────────────────────────────────────────
-  ctx.fillStyle = "#9aa2b1";
-  ctx.font = `600 32px ${SANS}`;
-  ctx.fillText("지금 이 사람은", cx, 470);
-
-  const titleFit = fit(ctx, `「${holiday}」 중`, W - 260, 62, 800, SANS, 1, 34);
-  ctx.font = `800 ${titleFit.px}px ${SANS}`;
-  ctx.fillStyle = "#4338ca";
-  ctx.fillText(titleFit.lines[0], cx, 536);
-
-  // ── 부재중 멘트 ─────────────────────────────────────────────────────────
-  const msgFit = fit(ctx, message, W - 240, 40, 400, SANS, 4, 28);
-  ctx.font = `400 ${msgFit.px}px ${SANS}`;
-  ctx.fillStyle = "#3f4658";
-  const lh = msgFit.px + 18;
-  let y = 636;
-  for (const ln of msgFit.lines) {
-    ctx.fillText(ln, cx, y);
-    y += lh;
+  // 일력 바인더 링(펀치 홀) 2개
+  ctx.fillStyle = "#d9d2c4";
+  ctx.strokeStyle = "rgba(0,0,0,0.15)";
+  ctx.lineWidth = 2;
+  for (const rx of [cx - 130, cx + 130]) {
+    ctx.beginPath();
+    ctx.arc(rx, py, 17, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   }
 
+  // 헤더 텍스트: 좌 "2026년 8월" · 우 "AUGUST"
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.font = `800 46px ${SANS}`;
+  ctx.fillText(`${yNum}년 ${mNum}월`, px + 54, py + headerH / 2 + 2);
+  ctx.textAlign = "right";
+  ctx.font = `600 30px ${SANS}`;
+  ctx.fillText(monthEn, px + pw - 54, py + headerH / 2 + 2);
+
+  // ── 요일 (공휴일이므로 붉게) ────────────────────────────────────────────
+  const bodyTop = py + headerH;
+  ctx.textAlign = "center";
+  ctx.fillStyle = CAL_RED;
+  ctx.font = `700 54px ${SANS}`;
+  ctx.fillText(`${weekdayKo}요일`, cx, bodyTop + 78);
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 26px ${SANS}`;
+  ctx.fillText(`${weekdayEn} · 나만의 공휴일`, cx, bodyTop + 126);
+
+  // ── 거대한 날짜 숫자 ────────────────────────────────────────────────────
+  ctx.fillStyle = CAL_RED;
+  ctx.font = `800 300px ${SERIF}`;
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(dNum), cx, bodyTop + 300);
+
+  // ── 공휴일 명칭 (골드 밴드) ─────────────────────────────────────────────
+  const nameY = bodyTop + 486;
+  const nameFit = fit(ctx, `「${holiday}」`, pw - 180, 44, 800, SANS, 1, 28);
+  ctx.font = `800 ${nameFit.px}px ${SANS}`;
+  const nameLabel = nameFit.lines[0];
+  const nameW = ctx.measureText(nameLabel).width;
+  const bandW = Math.min(nameW + 72, pw - 120);
+  ctx.fillStyle = "rgba(255,174,46,0.18)";
+  roundRect(ctx, cx - bandW / 2, nameY - 38, bandW, 76, 22);
+  ctx.fill();
+  ctx.fillStyle = GOLD;
+  ctx.textBaseline = "middle";
+  ctx.fillText(nameLabel, cx, nameY + 1);
+
   // ── 구분선 ──────────────────────────────────────────────────────────────
-  const divY = 872;
-  ctx.strokeStyle = "#eceef5";
+  const divY = nameY + 78;
+  ctx.strokeStyle = "#ece7dc";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(180, divY);
-  ctx.lineTo(W - 180, divY);
+  ctx.moveTo(px + 90, divY);
+  ctx.lineTo(px + pw - 90, divY);
   ctx.stroke();
 
-  // ── 하단: 날짜 + 브랜딩 ─────────────────────────────────────────────────
-  ctx.fillStyle = "#8890a0";
-  ctx.font = `600 30px ${SANS}`;
-  ctx.fillText(`오늘 하루 · ${formatKoreanDate(data.date)}`, cx, 916);
-
+  // ── 부재중 배지 (🔴 부재중 · OUT OF OFFICE) ────────────────────────────
+  const pillY = divY + 62;
+  const pillLabel = `${emoji} 부재중 · OUT OF OFFICE`;
   ctx.font = `700 30px ${SANS}`;
-  ctx.fillStyle = "#a78bfa";
-  ctx.fillText("🏖️ 나만의 공휴일", cx, 1010);
+  ctx.textAlign = "center";
+  const textW = ctx.measureText(pillLabel).width;
+  const pillW = textW + 68;
+  ctx.fillStyle = "#fdeaec";
+  roundRect(ctx, cx - pillW / 2, pillY - 34, pillW, 68, 34);
+  ctx.fill();
+  ctx.fillStyle = "#b3121f";
+  ctx.textBaseline = "middle";
+  ctx.fillText(pillLabel, cx, pillY + 1);
+
+  // ── 부재중 멘트 ─────────────────────────────────────────────────────────
+  const msgFit = fit(ctx, message, pw - 150, 34, 400, SANS, 3, 24);
+  ctx.font = `400 ${msgFit.px}px ${SANS}`;
+  ctx.fillStyle = "#454b57";
+  const lh = msgFit.px + 16;
+  let my = pillY + 78;
+  for (const ln of msgFit.lines) {
+    ctx.fillText(ln, cx, my);
+    my += lh;
+  }
+
+  // ── 하단 브랜딩 ─────────────────────────────────────────────────────────
+  ctx.fillStyle = INK;
+  ctx.font = `700 30px ${SANS}`;
+  ctx.fillText("🏖️ 나만의 공휴일", cx, py + ph - 44);
 }

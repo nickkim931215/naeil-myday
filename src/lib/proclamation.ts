@@ -1,9 +1,10 @@
 // ============================================================================
 // 나만의 공휴일 — '공휴일 선포문' 프리셋 문구 & 캔버스 렌더링
 // ----------------------------------------------------------------------------
-// 관보/표창장 느낌의 진지·웅장한 선포문을 <canvas>에 직접 그린다.
-// 화면 미리보기와 저장 이미지가 100% 동일(WYSIWYG)하며, 외부 의존성/네트워크가
-// 전혀 필요 없어 오프라인에서도 확실하게 동작한다. (인스타 스토리 비율 9:16)
+// 실제 정부 공문서(公文書) 서식을 본떠 <canvas>에 직접 그린다.
+// 발행기관 · 문서번호 · 결재란 · 수신/제목 · 번호 항목(가·나·다) · 관인(官印)까지.
+// 화면 미리보기 = 저장 이미지(WYSIWYG), 외부 의존성/네트워크 없이 오프라인 동작.
+// (인스타 스토리 비율 9:16)
 // ============================================================================
 
 import { formatKoreanDate } from "./holidays";
@@ -46,16 +47,18 @@ export interface ProclamationData {
   holder: string;
 }
 
-// 폰트 스택 — 윈도우/맥 공통으로 한글 세리프가 잡히도록 폴백을 넉넉히
+// 폰트 스택 — 윈도우/맥 공통으로 한글이 잡히도록 폴백을 넉넉히
 const SERIF =
   "'Batang', 'Nanum Myeongjo', 'AppleMyungjo', 'Malgun Gothic', serif";
 const SANS =
   "'Malgun Gothic', 'Apple SD Gothic Neo', 'Nanum Gothic', sans-serif";
 
-const INK = "#20264a"; // 짙은 먹빛 남색
-const GOLD = "#b0862f"; // 금박 테두리
-const ACCENT = "#4338ca"; // 강조(날짜/명칭)
-const SEAL_RED = "#c0392b"; // 낙관 도장
+const INK = "#1e2330"; // 공문 본문 먹색(딥 네이비블랙)
+const SUBINK = "#565b68"; // 보조 텍스트(라벨/메타)
+const GOLD = "#b0862f"; // 국장 금선(절제해서 사용)
+const SEAL_RED = "#c22a1c"; // 관인·강조 붉은색
+const RULE = "#232838"; // 굵은 괘선
+const HAIR = "rgba(30,35,48,0.28)"; // 가는 괘선
 
 /** 문자열을 maxWidth에 맞춰 글자 단위로 줄바꿈 (한글 대응) */
 function wrapText(
@@ -124,72 +127,149 @@ function centeredSpaced(
   }
 }
 
-/** 날짜 → 그럴싸한 관보 호수 (연중 일수 기반) "제 2026 - 073 호" */
+/** 자간을 준 왼쪽 정렬 라벨을 x에서 시작해 그림 → 끝난 x 반환 */
+function spacedLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  spacing: number
+): number {
+  ctx.textAlign = "left";
+  let lx = x;
+  for (const ch of [...text]) {
+    const w = ctx.measureText(ch).width;
+    ctx.fillText(ch, lx, y);
+    lx += w + spacing;
+  }
+  return lx;
+}
+
+/** 날짜 → 그럴싸한 문서번호 "제2026-073호" (연중 일수 기반) */
 function issueNo(date: string): string {
   const [y, m, d] = date.split("-").map(Number);
   const start = Date.UTC(y, 0, 0);
   const cur = Date.UTC(y, m - 1, d);
   const doy = Math.round((cur - start) / 86400000);
-  return `제 ${y} - ${String(doy).padStart(3, "0")} 호`;
+  return `제${y}-${String(doy).padStart(3, "0")}호`;
 }
 
-/** 상단 국장(國章) 느낌의 원형 엠블럼 */
-function drawEmblem(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
+/** 상단 중앙 국장(國章) 느낌의 무궁화 로제트 엠블럼 */
+function drawEmblem(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  R: number
+): void {
   ctx.save();
-  // 이중 금테 원
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 74, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 62, 0, Math.PI * 2);
-  ctx.stroke();
-  // 8방향 햇살
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 3;
-  for (let i = 0; i < 8; i++) {
-    const a = (Math.PI / 4) * i;
+  // 무궁화 느낌의 8꽃잎
+  ctx.fillStyle = GOLD;
+  const petals = 8;
+  for (let i = 0; i < petals; i++) {
+    const a = (Math.PI * 2 * i) / petals;
+    ctx.save();
+    ctx.translate(cx + Math.cos(a) * R * 0.6, cy + Math.sin(a) * R * 0.6);
+    ctx.rotate(a);
     ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(a) * 80, cy + Math.sin(a) * 80);
-    ctx.lineTo(cx + Math.cos(a) * 92, cy + Math.sin(a) * 92);
-    ctx.stroke();
+    ctx.ellipse(0, 0, R * 0.44, R * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
-  // 중앙 글자 休
+  // 중앙 붉은 원 + 금테
   ctx.fillStyle = SEAL_RED;
-  ctx.font = `700 66px ${SERIF}`;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.52, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.52, 0, Math.PI * 2);
+  ctx.stroke();
+  // 중앙 글자 休
+  ctx.fillStyle = "#fff";
+  ctx.font = `700 ${Math.round(R * 0.5)}px ${SERIF}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("休", cx, cy + 4);
+  ctx.fillText("休", cx, cy + 2);
   ctx.restore();
 }
 
-/** 우하단 낙관(붉은 도장) — 篆書풍 4자 "公休之印" */
-function drawSeal(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
+/** 상단 우측 결재란(공문 특유의 서명 박스) */
+function drawApprovalBox(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number
+): void {
+  const rowH = 44;
+  const signH = 66;
+  const c0 = 52; // "결재" 세로 칸 폭
+  const cw = 96; // 담당/위원장 칸 폭
+  const w = c0 + cw * 2;
+  const h = rowH + signH;
+  ctx.save();
+  ctx.strokeStyle = SUBINK;
+  ctx.lineWidth = 1.6;
+  ctx.strokeRect(x, y, w, h);
+  // 세로선
+  ctx.beginPath();
+  ctx.moveTo(x + c0, y);
+  ctx.lineTo(x + c0, y + h);
+  ctx.moveTo(x + c0 + cw, y);
+  ctx.lineTo(x + c0 + cw, y + h);
+  // 가로선(담당/위원장 라벨과 서명칸 구분)
+  ctx.moveTo(x + c0, y + rowH);
+  ctx.lineTo(x + w, y + rowH);
+  ctx.stroke();
+  ctx.textBaseline = "middle";
+  // "결 재" 세로 배치
+  ctx.fillStyle = SUBINK;
+  ctx.font = `700 22px ${SANS}`;
+  ctx.textAlign = "center";
+  ctx.fillText("결", x + c0 / 2, y + h / 2 - 15);
+  ctx.fillText("재", x + c0 / 2, y + h / 2 + 15);
+  // 라벨
+  ctx.font = `600 22px ${SANS}`;
+  ctx.fillText("담당", x + c0 + cw / 2, y + rowH / 2);
+  ctx.fillText("위원장", x + c0 + cw + cw / 2, y + rowH / 2);
+  // 서명칸 붉은 결재 도장(작은 원)
+  ctx.strokeStyle = SEAL_RED;
+  ctx.lineWidth = 2;
+  for (const col of [x + c0 + cw / 2, x + c0 + cw + cw / 2]) {
+    ctx.beginPath();
+    ctx.arc(col, y + rowH + signH / 2, 20, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = SEAL_RED;
+    ctx.font = `700 20px ${SERIF}`;
+    ctx.fillText("印", col, y + rowH + signH / 2 + 1);
+  }
+  ctx.restore();
+}
+
+/** 우하단 관인(官印) — 둥근 붉은 도장 "公休委印" */
+function drawSeal(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  R: number
+): void {
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate((-12 * Math.PI) / 180);
-  const s = 94; // 한 변
+  ctx.rotate((-9 * Math.PI) / 180);
   ctx.strokeStyle = SEAL_RED;
-  ctx.lineWidth = 6;
-  // 살짝 둥근 사각 테두리
-  const r = 14;
-  ctx.beginPath();
-  ctx.moveTo(-s / 2 + r, -s / 2);
-  ctx.arcTo(s / 2, -s / 2, s / 2, s / 2, r);
-  ctx.arcTo(s / 2, s / 2, -s / 2, s / 2, r);
-  ctx.arcTo(-s / 2, s / 2, -s / 2, -s / 2, r);
-  ctx.arcTo(-s / 2, -s / 2, s / 2, -s / 2, r);
-  ctx.closePath();
-  ctx.stroke();
-  // 4자 2x2 배치
   ctx.fillStyle = SEAL_RED;
-  ctx.font = `700 40px ${SERIF}`;
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.arc(0, 0, R, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, R - 13, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.font = `700 ${Math.round(R * 0.62)}px ${SERIF}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const chars = ["公", "休", "之", "印"];
-  const off = 23;
+  const off = R * 0.42;
+  const chars = ["公", "休", "委", "印"];
   ctx.fillText(chars[0], -off, -off);
   ctx.fillText(chars[1], off, -off);
   ctx.fillText(chars[2], -off, off);
@@ -208,147 +288,178 @@ export function drawProclamation(
   const W = CARD_W;
   const H = CARD_H;
   const cx = W / 2;
+  const LM = 128; // 본문 좌측 여백
+  const RM = W - 128; // 본문 우측 경계
+  const contentW = RM - LM;
   const name = data.name.trim() || "○○○의 날";
   const reason = data.reason.trim() || "지친 마음의 긴급 구조가 필요하므로";
   const holder = data.holder.trim() || "본인";
   const dateText = formatKoreanDate(data.date);
+  const [yy] = data.date.split("-");
 
-  // ── 배경 (아이보리 종이 + 은은한 그라데이션) ─────────────────────────────
+  // ── 배경 (아주 옅은 미색 종이) ──────────────────────────────────────────
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#fbf7ea");
-  bg.addColorStop(1, "#f3ead2");
+  bg.addColorStop(0, "#fcfbf7");
+  bg.addColorStop(1, "#f5f1e7");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // ── 테두리 (금박 + 먹선 이중) ───────────────────────────────────────────
+  // ── 테두리 (먹선 + 금 헤어라인 이중) ────────────────────────────────────
+  ctx.strokeStyle = RULE;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(50, 50, W - 100, H - 100);
   ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 8;
-  ctx.strokeRect(46, 46, W - 92, H - 92);
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(70, 70, W - 140, H - 140);
-  // 모서리 마름모 장식
-  ctx.fillStyle = GOLD;
-  for (const [x, y] of [
-    [58, 58],
-    [W - 58, 58],
-    [58, H - 58],
-    [W - 58, H - 58],
-  ]) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillRect(-9, -9, 18, 18);
-    ctx.restore();
-  }
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(64, 64, W - 128, H - 128);
 
   ctx.textBaseline = "middle";
 
-  // ── 상단 엠블럼 ────────────────────────────────────────────────────────
-  drawEmblem(ctx, cx, 258);
+  // ── 상단 메타: 문서번호/시행일자(좌) · 결재란(우) ───────────────────────
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 30px ${SANS}`;
+  ctx.textAlign = "left";
+  ctx.fillText(`문서번호   ${issueNo(data.date)}`, LM, 150);
+  ctx.fillText(`시 행 일   ${dateText}`, LM, 196);
+  drawApprovalBox(ctx, RM - 244, 120);
 
-  // ── 관보 호수 ──────────────────────────────────────────────────────────
-  ctx.fillStyle = "#8a7c55";
-  ctx.font = `500 34px ${SANS}`;
-  ctx.textAlign = "center";
-  centeredSpaced(ctx, issueNo(data.date), cx, 400, 6);
-
-  // ── 제목 ───────────────────────────────────────────────────────────────
+  // ── 발행기관 엠블럼 + 명의 ──────────────────────────────────────────────
+  drawEmblem(ctx, cx, 348, 78);
   ctx.fillStyle = INK;
-  ctx.font = `800 116px ${SERIF}`;
-  centeredSpaced(ctx, "공휴일 선포문", cx, 560, 10);
-  // 제목 밑줄
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 4;
+  ctx.font = `800 52px ${SERIF}`;
+  ctx.textAlign = "center";
+  centeredSpaced(ctx, "나만의 공휴일 위원회", cx, 480, 6);
+
+  // ── 굵은 구분선 ─────────────────────────────────────────────────────────
+  ctx.strokeStyle = RULE;
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(cx - 300, 648);
-  ctx.lineTo(cx + 300, 648);
+  ctx.moveTo(LM, 528);
+  ctx.lineTo(RM, 528);
   ctx.stroke();
 
-  // ── 본문 ───────────────────────────────────────────────────────────────
-  ctx.textAlign = "center";
-  let y = 772;
+  // ── 수신 / 제목 필드 ────────────────────────────────────────────────────
+  const fieldX = LM;
+  const valueX = LM + 132;
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = SUBINK;
+  ctx.font = `700 34px ${SANS}`;
+  spacedLabel(ctx, "수신", fieldX, 592, 14);
   ctx.fillStyle = INK;
-  ctx.font = `400 44px ${SERIF}`;
-  ctx.fillText(`위 사람 「${holder}」 은(는) 아래의 날,`, cx, y);
+  ctx.font = `500 38px ${SERIF}`;
+  ctx.textAlign = "left";
+  ctx.fillText(`「${holder}」 귀하`, valueX, 592);
 
-  y += 90;
-  ctx.fillStyle = ACCENT;
-  ctx.font = `700 66px ${SERIF}`;
-  ctx.fillText(dateText, cx, y);
-
-  y += 94;
+  ctx.fillStyle = SUBINK;
+  ctx.font = `700 34px ${SANS}`;
+  spacedLabel(ctx, "제목", fieldX, 652, 14);
   ctx.fillStyle = INK;
-  ctx.font = `400 44px ${SERIF}`;
-  ctx.fillText("을(를) 개인 법정 공휴일로 지정하고,", cx, y);
+  ctx.font = `500 38px ${SERIF}`;
+  ctx.textAlign = "left";
+  ctx.fillText("개인 법정 공휴일 지정 및 선포", valueX, 652);
 
-  y += 78;
-  ctx.fillText("그 명칭을 아래와 같이 정하여", cx, y);
-
-  // 명칭 하이라이트 박스 (길면 자동 축소)
-  y += 98;
-  const nameFit = fitLines(ctx, `「${name}」`, W - 210, 60, 800, SERIF, 1, 32);
-  ctx.font = `800 ${nameFit.px}px ${SERIF}`;
-  const nameLabel = nameFit.lines[0] ?? `「${name}」`;
-  const nw = ctx.measureText(nameLabel).width;
-  const boxW = Math.min(nw + 72, W - 176);
-  ctx.fillStyle = "rgba(67, 56, 202, 0.08)";
-  ctx.fillRect(cx - boxW / 2, y - nameFit.px * 0.82, boxW, nameFit.px * 1.64);
-  ctx.fillStyle = ACCENT;
-  ctx.fillText(nameLabel, cx, y);
-
-  y += 88;
-  ctx.fillStyle = INK;
-  ctx.font = `400 44px ${SERIF}`;
-  ctx.fillText("이를 엄숙히 선포한다.", cx, y);
-
-  // ── 선포 사유 ──────────────────────────────────────────────────────────
-  y += 104;
-  ctx.fillStyle = GOLD;
-  ctx.font = `700 38px ${SANS}`;
-  centeredSpaced(ctx, "◈  선 포 사 유  ◈", cx, y, 4);
-
-  y += 66;
-  ctx.fillStyle = "#3a3a3a";
-  const reasonFit = fitLines(ctx, `“${reason}”`, W - 200, 44, 400, SERIF, 2, 28);
-  ctx.font = `400 ${reasonFit.px}px ${SERIF}`;
-  const rlh = reasonFit.px + 14;
-  let reasonBottom = y;
-  for (const ln of reasonFit.lines) {
-    ctx.fillText(ln, cx, y);
-    reasonBottom = y;
-    y += rlh;
-  }
-
-  // ── 공식 효력 ──────────────────────────────────────────────────────────
-  y = reasonBottom + 44;
-  ctx.strokeStyle = "rgba(176,134,47,0.5)";
+  // 가는 구분선
+  ctx.strokeStyle = HAIR;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(cx - 330, y);
-  ctx.lineTo(cx + 330, y);
+  ctx.moveTo(LM, 700);
+  ctx.lineTo(RM, 700);
   ctx.stroke();
 
-  y += 54;
-  ctx.fillStyle = "#5b5b5b";
-  const effect =
-    "위 사람은 오늘 하루, 모든 사회적 책임과 업무 연락으로부터 합법적으로 면제됨을 이에 확인함.";
-  const effFit = fitLines(ctx, effect, W - 240, 34, 400, SANS, 2, 26);
-  ctx.font = `400 ${effFit.px}px ${SANS}`;
-  const elh = effFit.px + 16;
-  let bodyBottom = y;
-  for (const ln of effFit.lines) {
-    ctx.fillText(ln, cx, y);
-    bodyBottom = y;
-    y += elh;
-  }
-
-  // ── 서명부 & 낙관 (본문 아래로 동적 배치 · 겹침 방지) ──────────────────
-  const [yy] = data.date.split("-");
-  const footerY = Math.min(Math.max(bodyBottom + 96, 1688), 1724);
+  // ── 문서 제목(대) ───────────────────────────────────────────────────────
   ctx.fillStyle = INK;
-  ctx.font = `600 44px ${SERIF}`;
-  centeredSpaced(ctx, `${yy}년   나만의 공휴일 위원회`, cx - 26, footerY, 2);
+  ctx.font = `800 100px ${SERIF}`;
+  ctx.textAlign = "center";
+  centeredSpaced(ctx, "공 휴 일  선 포 문", cx, 812, 4);
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 300, 876);
+  ctx.lineTo(cx + 300, 876);
+  ctx.stroke();
 
-  drawSeal(ctx, W - 182, footerY + 56);
+  // ── 본문(번호 항목) ─────────────────────────────────────────────────────
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  const bodyPx = 40;
+  const bodyLh = bodyPx + 26;
+  const indent = 42; // 번호 항목 이어지는 줄 들여쓰기
+  let y = 980;
+
+  const drawClause = (text: string) => {
+    ctx.fillStyle = INK;
+    ctx.font = `400 ${bodyPx}px ${SERIF}`;
+    const lines = wrapText(ctx, text, contentW - indent);
+    lines.forEach((ln, i) => {
+      ctx.fillText(ln, LM + (i === 0 ? 0 : indent), y);
+      y += bodyLh;
+    });
+  };
+
+  drawClause("1. 귀하의 그동안의 노고에 깊은 경의를 표합니다.");
+  y += 8;
+  drawClause(
+    `2. 이에 「${holder}」을(를) 아래와 같이 개인 법정 공휴일로 지정하고, 그 효력을 이에 엄숙히 선포합니다.`
+  );
+
+  // 가·나·다 세부 항목
+  y += 20;
+  const subLabelX = LM + 52;
+  const subValueX = LM + 240;
+  const subValueW = RM - subValueX;
+
+  // 가. 지정일 (붉은 강조)
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 36px ${SANS}`;
+  ctx.fillText("가.  지 정 일", subLabelX, y);
+  ctx.fillStyle = SEAL_RED;
+  ctx.font = `700 46px ${SERIF}`;
+  ctx.fillText(dateText, subValueX, y);
+  y += 78;
+
+  // 나. 명칭 (하이라이트 박스)
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 36px ${SANS}`;
+  ctx.fillText("나.  명    칭", subLabelX, y);
+  const nameFit = fitLines(ctx, `「${name}」`, subValueW, 46, 800, SERIF, 1, 30);
+  const nameLabel = nameFit.lines[0] ?? `「${name}」`;
+  ctx.font = `800 ${nameFit.px}px ${SERIF}`;
+  const nw = ctx.measureText(nameLabel).width;
+  ctx.fillStyle = "rgba(176,134,47,0.16)";
+  ctx.fillRect(subValueX - 12, y - nameFit.px * 0.72, nw + 24, nameFit.px * 1.44);
+  ctx.fillStyle = "#8a5a12";
+  ctx.fillText(nameLabel, subValueX, y);
+  y += 78;
+
+  // 다. 사유 (필요 시 2줄 줄바꿈)
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 36px ${SANS}`;
+  ctx.fillText("다.  선포사유", subLabelX, y);
+  const reasonFit = fitLines(ctx, `“${reason}”`, subValueW, 38, 400, SERIF, 2, 26);
+  ctx.font = `400 ${reasonFit.px}px ${SERIF}`;
+  ctx.fillStyle = "#3a3f4c";
+  const rLh = reasonFit.px + 12;
+  reasonFit.lines.forEach((ln, i) => {
+    ctx.fillText(ln, subValueX, y + i * rLh);
+  });
+  y += (reasonFit.lines.length - 1) * rLh + 84;
+
+  // 3. 효력 확인
+  drawClause(
+    "3. 상기인은 지정일 당일, 일체의 업무 연락 및 사회적 책무로부터 합법적으로 면제됨을 확인합니다.  끝."
+  );
+
+  // ── 하단: 굵은 선 · 발신명의 · 관인 ─────────────────────────────────────
+  const footerY = Math.min(Math.max(y + 96, 1690), 1740);
+  ctx.strokeStyle = RULE;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(LM, footerY - 92);
+  ctx.lineTo(RM, footerY - 92);
+  ctx.stroke();
+
+  ctx.fillStyle = INK;
+  ctx.font = `700 56px ${SERIF}`;
+  ctx.textAlign = "center";
+  centeredSpaced(ctx, `${yy}년   나만의 공휴일 위원회 위원장`, cx - 40, footerY, 2);
+  drawSeal(ctx, RM - 66, footerY + 4, 62);
 }

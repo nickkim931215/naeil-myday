@@ -69,19 +69,19 @@ export default function HolidayApp() {
   };
 
   return (
-    <main className="relative flex min-h-full w-full flex-1 flex-col items-center overflow-x-hidden bg-gradient-to-b from-indigo-50 via-white to-fuchsia-50 px-4 py-10 dark:from-indigo-950/40 dark:via-black dark:to-fuchsia-950/30 sm:py-12">
+    <main className="relative flex min-h-full w-full flex-1 flex-col items-center overflow-x-hidden px-4 py-10 sm:py-12">
       {/* 헤더 */}
       <header className="mb-7 flex w-full max-w-xl flex-col items-center px-1 text-center">
-        <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-indigo-500 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-gold/25 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-gold shadow-sm">
           🏖️ 나만의 공휴일
         </span>
-        <h1 className="w-full text-balance text-xl font-black leading-snug tracking-tight text-slate-800 dark:text-slate-50 sm:text-2xl md:text-3xl">
-          예수님, 부처님도 하루씩 쉬시는데… 제 멘탈은 누가 구원하죠?{" "}
-          <span className="bg-gradient-to-r from-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">
-            나라가 안 주면 내가 만드는 셀프 국경일.
-          </span>
+        <h1 className="w-full text-balance text-xl font-black leading-snug tracking-tight text-ivory sm:text-2xl md:text-3xl">
+          예수님, 부처님도 하루씩 쉬시는데, 저는요?
         </h1>
-        <p className="mt-3 w-full max-w-md text-balance text-sm leading-6 text-slate-500 dark:text-slate-400 sm:text-base">
+        <p className="mt-3 w-full text-balance bg-gradient-to-r from-gold to-crimson bg-clip-text pb-1 text-lg font-black leading-tight text-transparent sm:text-xl md:text-2xl">
+          대체공휴일 말고, 나만의 대체공휴(생)일!
+        </p>
+        <p className="mt-4 w-full max-w-md text-balance text-sm leading-6 text-muted sm:text-base">
           세상의 모든 <b>내일(Tomorrow)</b>을 위해, 오늘은 나의{" "}
           <b>내 일(My Day)</b>을 멈출 권리.
         </p>
@@ -97,7 +97,7 @@ export default function HolidayApp() {
         {step === "pick" && setup && (
           <div className="flex w-full flex-col items-center gap-5">
             {setup.year === 2026 && (
-              <p className="rounded-full bg-indigo-50 px-4 py-2 text-center text-xs font-medium text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-300">
+              <p className="rounded-full bg-gold/10 px-4 py-2 text-center text-xs font-medium text-gold">
                 📢 2026년은 <b>8월 ~ 12월</b> 중에서 고를 수 있어요 (지난 날짜는 제외)
               </p>
             )}
@@ -108,16 +108,16 @@ export default function HolidayApp() {
               onSelect={handleSelect}
               onReject={handleReject}
             />
-            <div className="flex items-center gap-3 text-sm text-slate-400">
-              <span className="h-px w-8 bg-slate-300 dark:bg-white/10" />
+            <div className="flex items-center gap-3 text-sm text-muted">
+              <span className="h-px w-8 bg-white/15" />
               고르기 어렵다면
-              <span className="h-px w-8 bg-slate-300 dark:bg-white/10" />
+              <span className="h-px w-8 bg-white/15" />
             </div>
             <button
               type="button"
               onClick={handleRoulette}
               disabled={spinning}
-              className="flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white shadow-lg transition hover:brightness-110 active:scale-[0.99] disabled:opacity-70 dark:bg-white dark:text-slate-900"
+              className="flex items-center gap-2 rounded-2xl bg-gold px-6 py-3.5 text-base font-bold text-ink shadow-lg shadow-gold/20 transition hover:brightness-110 active:scale-[0.99] disabled:opacity-70"
             >
               <span className={spinning ? "animate-spin-fast" : ""}>🎲</span>
               {spinning ? "운명을 뽑는 중…" : "운명에 맡기기 (랜덤 평일)"}
@@ -125,7 +125,7 @@ export default function HolidayApp() {
             <button
               type="button"
               onClick={restart}
-              className="text-sm font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              className="text-sm font-medium text-muted transition hover:text-ivory"
             >
               ← 생일 다시 입력
             </button>
@@ -135,7 +135,7 @@ export default function HolidayApp() {
         {step === "proclaim" && selected && (
           <div className="flex w-full flex-col items-center gap-6">
             {/* 결과물 탭 */}
-            <div className="flex gap-1.5 rounded-full border border-black/5 bg-white/70 p-1.5 shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="flex gap-1.5 rounded-full border border-white/10 bg-white/5 p-1.5 shadow-sm">
               {(
                 [
                   { key: "proclaim", label: "📜 공휴일 선포문" },
@@ -148,8 +148,8 @@ export default function HolidayApp() {
                   onClick={() => setTab(t.key)}
                   className={`rounded-full px-5 py-2 text-sm font-bold transition ${
                     tab === t.key
-                      ? "bg-indigo-500 text-white shadow"
-                      : "text-slate-500 hover:text-indigo-500 dark:text-slate-300"
+                      ? "bg-gold text-ink shadow"
+                      : "text-muted hover:text-ivory"
                   }`}
                   aria-pressed={tab === t.key}
                 >
@@ -181,7 +181,7 @@ export default function HolidayApp() {
 
       <Toast message={toast} />
 
-      <footer className="mt-14 w-full max-w-md text-balance px-4 text-center text-xs leading-5 text-slate-400">
+      <footer className="mt-14 w-full max-w-md text-balance px-4 text-center text-xs leading-5 text-muted">
         {selected && step !== "proclaim" && (
           <span className="mr-2">선택: {formatKoreanDate(selected)} ·</span>
         )}
@@ -208,17 +208,19 @@ function StepDots({ step }: { step: Step }) {
             <div
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition sm:text-xs ${
                 active
-                  ? "bg-indigo-500 text-white shadow-sm"
+                  ? "bg-gold text-ink shadow-sm"
                   : done
-                    ? "bg-indigo-100 text-indigo-500 dark:bg-indigo-500/20 dark:text-indigo-300"
-                    : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500"
+                    ? "bg-gold/15 text-gold"
+                    : "bg-white/5 text-muted"
               }`}
             >
               <span
                 className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
-                  active || done
-                    ? "bg-white/25"
-                    : "bg-slate-200 dark:bg-white/10"
+                  active
+                    ? "bg-ink/15"
+                    : done
+                      ? "bg-gold/25"
+                      : "bg-white/10"
                 }`}
               >
                 {done ? "✓" : i + 1}
@@ -226,7 +228,7 @@ function StepDots({ step }: { step: Step }) {
               {s.label}
             </div>
             {i < steps.length - 1 && (
-              <span className="h-px w-2.5 bg-slate-200 dark:bg-white/10 sm:w-4" />
+              <span className="h-px w-2.5 bg-white/10 sm:w-4" />
             )}
           </div>
         );
