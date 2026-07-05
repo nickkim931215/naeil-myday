@@ -45,6 +45,8 @@ export interface ProclamationData {
   reason: string;
   /** 선포 대상 (이름/별명) */
   holder: string;
+  /** 이미지 하단에 새길 사이트 주소(워터마크). 비우면 표기 생략 */
+  site?: string;
 }
 
 // 폰트 스택 — 윈도우/맥 공통으로 한글이 잡히도록 폴백을 넉넉히
@@ -380,10 +382,10 @@ export function drawProclamation(
   // ── 본문(번호 항목) ─────────────────────────────────────────────────────
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  const bodyPx = 40;
-  const bodyLh = bodyPx + 26;
+  const bodyPx = 39;
+  const bodyLh = bodyPx + 21;
   const indent = 42; // 번호 항목 이어지는 줄 들여쓰기
-  let y = 980;
+  let y = 966;
 
   const drawClause = (text: string) => {
     ctx.fillStyle = INK;
@@ -396,13 +398,13 @@ export function drawProclamation(
   };
 
   drawClause("1. 귀하의 그동안의 노고에 깊은 경의를 표합니다.");
-  y += 8;
+  y += 6;
   drawClause(
     `2. 이에 「${holder}」을(를) 아래와 같이 개인 법정 공휴일로 지정하고, 그 효력을 이에 엄숙히 선포합니다.`
   );
 
   // 가·나·다 세부 항목
-  y += 20;
+  y += 16;
   const subLabelX = LM + 52;
   const subValueX = LM + 240;
   const subValueW = RM - subValueX;
@@ -414,7 +416,7 @@ export function drawProclamation(
   ctx.fillStyle = SEAL_RED;
   ctx.font = `700 46px ${SERIF}`;
   ctx.fillText(dateText, subValueX, y);
-  y += 78;
+  y += 70;
 
   // 나. 명칭 (하이라이트 박스)
   ctx.fillStyle = SUBINK;
@@ -428,7 +430,7 @@ export function drawProclamation(
   ctx.fillRect(subValueX - 12, y - nameFit.px * 0.72, nw + 24, nameFit.px * 1.44);
   ctx.fillStyle = "#8a5a12";
   ctx.fillText(nameLabel, subValueX, y);
-  y += 78;
+  y += 70;
 
   // 다. 사유 (필요 시 2줄 줄바꿈)
   ctx.fillStyle = SUBINK;
@@ -437,29 +439,45 @@ export function drawProclamation(
   const reasonFit = fitLines(ctx, `“${reason}”`, subValueW, 38, 400, SERIF, 2, 26);
   ctx.font = `400 ${reasonFit.px}px ${SERIF}`;
   ctx.fillStyle = "#3a3f4c";
-  const rLh = reasonFit.px + 12;
+  const rLh = reasonFit.px + 10;
   reasonFit.lines.forEach((ln, i) => {
     ctx.fillText(ln, subValueX, y + i * rLh);
   });
-  y += (reasonFit.lines.length - 1) * rLh + 84;
+  y += (reasonFit.lines.length - 1) * rLh + 66;
 
   // 3. 효력 확인
   drawClause(
     "3. 상기인은 지정일 당일, 일체의 업무 연락 및 사회적 책무로부터 합법적으로 면제됨을 확인합니다.  끝."
   );
 
-  // ── 하단: 굵은 선 · 발신명의 · 관인 ─────────────────────────────────────
-  const footerY = Math.min(Math.max(y + 96, 1690), 1740);
+  // ── 하단: 굵은 선 · 발신명의 · 관인 · 워터마크 ──────────────────────────
+  // 실제 공문처럼 발신 명의를 하단에 고정 배치한다. 본문은 위에서 넉넉히
+  // 압축돼 항상 이 위치 위에서 끝나므로 겹치지 않는다. (초장문일 때만 아래로 흐름)
+  const sepY = Math.max(1668, y + 20);
   ctx.strokeStyle = RULE;
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(LM, footerY - 92);
-  ctx.lineTo(RM, footerY - 92);
+  ctx.moveTo(LM, sepY);
+  ctx.lineTo(RM, sepY);
   ctx.stroke();
 
+  // 발신 명의 — 관인과 겹치지 않도록 폰트를 줄이고 왼쪽으로 살짝 이동
+  const signY = sepY + 76;
   ctx.fillStyle = INK;
-  ctx.font = `700 56px ${SERIF}`;
+  ctx.font = `700 40px ${SERIF}`;
   ctx.textAlign = "center";
-  centeredSpaced(ctx, `${yy}년   나만의 공휴일 위원회 위원장`, cx - 40, footerY, 2);
-  drawSeal(ctx, RM - 66, footerY + 4, 62);
+  ctx.textBaseline = "middle";
+  centeredSpaced(ctx, `${yy}년  나만의 공휴일 위원회 위원장`, cx - 78, signY, 1);
+  drawSeal(ctx, RM - 56, signY, 50);
+
+  // 워터마크 (바이럴 루프: 이미지를 본 사람이 사이트를 찾도록)
+  const wm = data.site
+    ? `나도 만들기 · ${data.site}`
+    : "나도 만들기 · 나만의 공휴일";
+  const wmY = signY + 68;
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 24px ${SANS}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  centeredSpaced(ctx, wm, cx, wmY, 2);
 }

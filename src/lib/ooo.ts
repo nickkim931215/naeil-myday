@@ -64,7 +64,6 @@ const SANS =
   "'Malgun Gothic', 'Apple SD Gothic Neo', 'Nanum Gothic', sans-serif";
 const SERIF =
   "'Batang', 'Nanum Myeongjo', 'AppleMyungjo', 'Malgun Gothic', serif";
-const EMOJI = "'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
 
 // 달력 팔레트 — 웹 테마와 맞춘 크림슨/골드/먹색
 const CAL_RED = "#e5162f"; // 공휴일 빨강(일력 헤더·날짜)
@@ -87,6 +86,8 @@ export interface OOOData {
   message: string;
   /** 대표 이모지 */
   emoji: string;
+  /** 하단 워터마크에 새길 사이트 주소. 비우면 브랜드명만 표기 */
+  site?: string;
 }
 
 /** 글자 단위 줄바꿈 (한글 대응) */
@@ -221,38 +222,41 @@ export function drawOutOfOffice(
   ctx.font = `600 30px ${SANS}`;
   ctx.fillText(monthEn, px + pw - 54, py + headerH / 2 + 2);
 
-  // ── 요일 (공휴일이므로 붉게) ────────────────────────────────────────────
-  const bodyTop = py + headerH;
-  ctx.textAlign = "center";
-  ctx.fillStyle = CAL_RED;
-  ctx.font = `700 54px ${SANS}`;
-  ctx.fillText(`${weekdayKo}요일`, cx, bodyTop + 78);
-  ctx.fillStyle = SUBINK;
-  ctx.font = `600 26px ${SANS}`;
-  ctx.fillText(`${weekdayEn} · 나만의 공휴일`, cx, bodyTop + 126);
+  // 패널 내부 세로 배치를 예산(bodyTop~panelBottom) 안에서 계산해 겹침을 방지한다.
+  const bodyTop = py + headerH; // 246
+  const panelBottom = py + ph; // 954
 
-  // ── 거대한 날짜 숫자 ────────────────────────────────────────────────────
-  ctx.fillStyle = CAL_RED;
-  ctx.font = `800 300px ${SERIF}`;
+  // ── 요일 (공휴일이므로 붉게) ────────────────────────────────────────────
+  ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(String(dNum), cx, bodyTop + 300);
+  ctx.fillStyle = CAL_RED;
+  ctx.font = `700 46px ${SANS}`;
+  ctx.fillText(`${weekdayKo}요일`, cx, bodyTop + 54);
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 24px ${SANS}`;
+  ctx.fillText(`${weekdayEn} · 나만의 공휴일`, cx, bodyTop + 96);
+
+  // ── 큼직한 날짜 숫자 (예산에 맞춰 168px로 절제) ─────────────────────────
+  ctx.fillStyle = CAL_RED;
+  ctx.font = `800 168px ${SERIF}`;
+  ctx.fillText(String(dNum), cx, bodyTop + 210);
 
   // ── 공휴일 명칭 (골드 밴드) ─────────────────────────────────────────────
-  const nameY = bodyTop + 486;
-  const nameFit = fit(ctx, `「${holiday}」`, pw - 180, 44, 800, SANS, 1, 28);
+  const nameY = bodyTop + 338;
+  const nameFit = fit(ctx, `「${holiday}」`, pw - 180, 40, 800, SANS, 1, 26);
   ctx.font = `800 ${nameFit.px}px ${SANS}`;
   const nameLabel = nameFit.lines[0];
   const nameW = ctx.measureText(nameLabel).width;
-  const bandW = Math.min(nameW + 72, pw - 120);
+  const bandW = Math.min(nameW + 64, pw - 120);
   ctx.fillStyle = "rgba(255,174,46,0.18)";
-  roundRect(ctx, cx - bandW / 2, nameY - 38, bandW, 76, 22);
+  roundRect(ctx, cx - bandW / 2, nameY - 34, bandW, 68, 20);
   ctx.fill();
   ctx.fillStyle = GOLD;
   ctx.textBaseline = "middle";
   ctx.fillText(nameLabel, cx, nameY + 1);
 
   // ── 구분선 ──────────────────────────────────────────────────────────────
-  const divY = nameY + 78;
+  const divY = nameY + 60;
   ctx.strokeStyle = "#ece7dc";
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -261,32 +265,48 @@ export function drawOutOfOffice(
   ctx.stroke();
 
   // ── 부재중 배지 (🔴 부재중 · OUT OF OFFICE) ────────────────────────────
-  const pillY = divY + 62;
+  const pillY = divY + 54;
   const pillLabel = `${emoji} 부재중 · OUT OF OFFICE`;
-  ctx.font = `700 30px ${SANS}`;
+  ctx.font = `700 28px ${SANS}`;
   ctx.textAlign = "center";
   const textW = ctx.measureText(pillLabel).width;
-  const pillW = textW + 68;
+  const pillW = textW + 60;
   ctx.fillStyle = "#fdeaec";
-  roundRect(ctx, cx - pillW / 2, pillY - 34, pillW, 68, 34);
+  roundRect(ctx, cx - pillW / 2, pillY - 32, pillW, 64, 32);
   ctx.fill();
   ctx.fillStyle = "#b3121f";
   ctx.textBaseline = "middle";
   ctx.fillText(pillLabel, cx, pillY + 1);
 
-  // ── 부재중 멘트 ─────────────────────────────────────────────────────────
-  const msgFit = fit(ctx, message, pw - 150, 34, 400, SANS, 3, 24);
+  // ── 하단 브랜딩 + 워터마크 (패널 바닥에 고정) ───────────────────────────
+  const brandY = panelBottom - 58;
+  const wmY = panelBottom - 28;
+
+  // ── 부재중 멘트 (배지와 브랜딩 사이 공간에 세로 가운데 정렬) ────────────
+  const msgTop = pillY + 34; // 배지 아래
+  const msgBottom = brandY - 30; // 브랜딩 위 여백
+  const msgFit = fit(ctx, message, pw - 150, 32, 400, SANS, 3, 22);
   ctx.font = `400 ${msgFit.px}px ${SANS}`;
   ctx.fillStyle = "#454b57";
-  const lh = msgFit.px + 16;
-  let my = pillY + 78;
+  const lh = msgFit.px + 14;
+  const blockH = (msgFit.lines.length - 1) * lh;
+  let my = (msgTop + msgBottom) / 2 - blockH / 2;
   for (const ln of msgFit.lines) {
     ctx.fillText(ln, cx, my);
     my += lh;
   }
 
-  // ── 하단 브랜딩 ─────────────────────────────────────────────────────────
+  // 브랜딩 + 워터마크
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   ctx.fillStyle = INK;
-  ctx.font = `700 30px ${SANS}`;
-  ctx.fillText("🏖️ 나만의 공휴일", cx, py + ph - 44);
+  ctx.font = `800 28px ${SANS}`;
+  ctx.fillText("🏖️ 나만의 공휴일", cx, brandY);
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 22px ${SANS}`;
+  ctx.fillText(
+    data.site ? `나도 만들기 · ${data.site}` : "나도 만들기",
+    cx,
+    wmY
+  );
 }

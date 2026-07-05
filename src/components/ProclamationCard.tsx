@@ -10,7 +10,7 @@ import {
   drawProclamation,
 } from "@/lib/proclamation";
 import ShareIcon from "./ShareIcon";
-import { fallbackHint, shareCanvas } from "@/lib/share";
+import { fallbackHint, shareCanvas, shareLink, siteHost, siteUrl } from "@/lib/share";
 
 interface ProclamationCardProps {
   /** 선택된 "YYYY-MM-DD" */
@@ -45,7 +45,7 @@ export default function ProclamationCard({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    drawProclamation(ctx, { date, name, reason, holder });
+    drawProclamation(ctx, { date, name, reason, holder, site: siteHost() });
   }, [date, name, reason, holder]);
 
   const fillRandom = () => {
@@ -79,12 +79,25 @@ export default function ProclamationCard({
       {
         title: "나만의 공휴일 선포문",
         text: "나라가 안 주면 내가 만드는 셀프 국경일! #나만의공휴일",
+        url: siteUrl(),
       }
     );
-    if (result === "downloaded") {
-      setShareMsg(fallbackHint("인스타 스토리"));
+    if (result.status === "downloaded") {
+      setShareMsg(fallbackHint("인스타 스토리", result.reason));
       window.setTimeout(() => setShareMsg(null), 6000);
     }
+  };
+
+  // 사이트 링크 자체를 퍼뜨려 친구도 만들게 (바이럴 초대)
+  const handleInvite = async () => {
+    const r = await shareLink({
+      title: "나만의 공휴일",
+      text: "나라가 안 주면 내가 만든다! 너도 평일 하루 골라 공휴일 선포해봐 👇",
+    });
+    if (r === "copied") setShareMsg("초대 링크를 복사했어요! 친구에게 붙여넣기 하세요 📋");
+    else if (r === "failed") setShareMsg("링크 공유에 실패했어요. 주소창의 URL을 복사해 보내주세요!");
+    if (r === "copied" || r === "failed")
+      window.setTimeout(() => setShareMsg(null), 5000);
   };
 
   return (
@@ -220,6 +233,14 @@ export default function ProclamationCard({
             {shareMsg}
           </p>
         )}
+
+        <button
+          type="button"
+          onClick={handleInvite}
+          className="mt-3 w-full rounded-2xl border border-gold/30 bg-gold/10 px-6 py-3 text-sm font-bold text-gold transition hover:bg-gold/20"
+        >
+          🔗 친구 소환하기 (초대 링크 공유)
+        </button>
 
         <p className="mt-4 rounded-xl border border-gold/15 bg-gold/[0.07] px-4 py-3 text-center text-xs leading-5 text-gold/90">
           저장한 선포문을 인스타 스토리에 올리고 친구를 태그해{" "}

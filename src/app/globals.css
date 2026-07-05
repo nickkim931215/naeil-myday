@@ -32,7 +32,13 @@ body {
     radial-gradient(120% 85% at 50% 108%, rgba(246, 4, 46, 0.10), transparent 55%),
     #020005;
   color: #f4eee3;
-  font-family: Arial, Helvetica, sans-serif;
+  /* 한글 우선 시스템 폰트 스택 (있으면 Pretendard, 맥은 Apple SD Gothic Neo, 윈도우는 맑은 고딕) */
+  font-family: "Pretendard", "Pretendard Variable", var(--font-geist-sans),
+    "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui,
+    -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  word-break: keep-all; /* 한글 단어가 어색하게 끊기지 않도록 */
 }
 
 /* 철벽 방어: 비활성 날짜 클릭 시 흔들림 */
