@@ -5,6 +5,7 @@ import BirthdayForm, { BirthdaySetup } from "./BirthdayForm";
 import HolidayCalendar, { rejectMessage } from "./HolidayCalendar";
 import ProclamationCard from "./ProclamationCard";
 import OutOfOfficeCard from "./OutOfOfficeCard";
+import CalendarDownload from "./CalendarDownload";
 import Toast from "./Toast";
 import {
   DayInfo,
@@ -15,7 +16,7 @@ import {
 import { sfx } from "@/lib/sfx";
 
 type Step = "setup" | "pick" | "proclaim";
-type Tab = "proclaim" | "ooo";
+type Tab = "proclaim" | "ooo" | "cal";
 
 export default function HolidayApp() {
   const [step, setStep] = useState<Step>("setup");
@@ -135,11 +136,12 @@ export default function HolidayApp() {
         {step === "proclaim" && selected && (
           <div className="flex w-full flex-col items-center gap-6">
             {/* 결과물 탭 */}
-            <div className="flex gap-1.5 rounded-full border border-white/10 bg-white/5 p-1.5 shadow-sm">
+            <div className="flex gap-1 rounded-full border border-white/10 bg-white/5 p-1.5 shadow-sm">
               {(
                 [
-                  { key: "proclaim", label: "📜 공휴일 선포문" },
+                  { key: "proclaim", label: "📜 선포문" },
                   { key: "ooo", label: "💬 부재중 짤" },
+                  { key: "cal", label: "📅 달력" },
                 ] as { key: Tab; label: string }[]
               ).map((t) => (
                 <button
@@ -147,7 +149,7 @@ export default function HolidayApp() {
                   type="button"
                   data-sfx="select"
                   onClick={() => setTab(t.key)}
-                  className={`rounded-full px-5 py-2 text-sm font-bold transition ${
+                  className={`rounded-full px-3.5 py-2 text-sm font-bold transition sm:px-5 ${
                     tab === t.key
                       ? "bg-gold text-ink shadow"
                       : "text-muted hover:text-ivory"
@@ -159,7 +161,7 @@ export default function HolidayApp() {
               ))}
             </div>
 
-            {tab === "proclaim" ? (
+            {tab === "proclaim" && (
               <ProclamationCard
                 date={selected}
                 name={name}
@@ -167,11 +169,21 @@ export default function HolidayApp() {
                 onBack={() => setStep("pick")}
                 onRestart={restart}
               />
-            ) : (
+            )}
+            {tab === "ooo" && (
               <OutOfOfficeCard
                 date={selected}
                 name={name}
                 onNameChange={setName}
+                onBack={() => setStep("pick")}
+                onRestart={restart}
+              />
+            )}
+            {tab === "cal" && setup && (
+              <CalendarDownload
+                year={setup.year}
+                birthdayKey={birthdayKey || undefined}
+                myHoliday={{ date: selected, name }}
                 onBack={() => setStep("pick")}
                 onRestart={restart}
               />
