@@ -10,6 +10,7 @@ import {
   drawProclamation,
 } from "@/lib/proclamation";
 import ShareIcon from "./ShareIcon";
+import SignaturePad from "./SignaturePad";
 import { fallbackHint, shareCanvas, shareLink, siteHost, siteUrl } from "@/lib/share";
 import { sfx } from "@/lib/sfx";
 
@@ -38,7 +39,19 @@ export default function ProclamationCard({
   const [holder, setHolder] = useState("본인");
   const [saved, setSaved] = useState(false);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [sigImg, setSigImg] = useState<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 서명 dataURL → 로드된 이미지로 변환 (캔버스에 그리려면 로드가 끝나야 함)
+  const handleSignature = (dataUrl: string | null) => {
+    if (!dataUrl) {
+      setSigImg(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setSigImg(img);
+    img.src = dataUrl;
+  };
 
   // 입력이 바뀔 때마다 캔버스 다시 그리기 (미리보기 = 저장 이미지)
   useEffect(() => {
@@ -46,8 +59,15 @@ export default function ProclamationCard({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    drawProclamation(ctx, { date, name, reason, holder, site: siteHost() });
-  }, [date, name, reason, holder]);
+    drawProclamation(ctx, {
+      date,
+      name,
+      reason,
+      holder,
+      site: siteHost(),
+      signature: sigImg,
+    });
+  }, [date, name, reason, holder, sigImg]);
 
   const fillRandom = () => {
     const n = NAME_PRESETS[Math.floor(Math.random() * NAME_PRESETS.length)];
@@ -208,6 +228,15 @@ export default function ProclamationCard({
               {p}
             </button>
           ))}
+        </div>
+
+        {/* 결재 서명 — 공문서에 사인하듯 */}
+        <div className="mb-6">
+          <label className="mb-1.5 flex items-center justify-between text-sm font-semibold text-ivory/90">
+            <span>✍️ 결재 서명</span>
+            <span className="font-normal text-muted">선포문 하단에 새겨져요</span>
+          </label>
+          <SignaturePad onChange={handleSignature} />
         </div>
 
         {/* 액션 */}

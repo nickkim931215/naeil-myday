@@ -47,6 +47,8 @@ export interface ProclamationData {
   holder: string;
   /** 이미지 하단에 새길 사이트 주소(워터마크). 비우면 표기 생략 */
   site?: string;
+  /** 선포인 자필 서명 (로드 완료된 이미지). 없으면 안내 문구 표시 */
+  signature?: HTMLImageElement | null;
 }
 
 // 폰트 스택 — 윈도우/맥 공통으로 한글이 잡히도록 폴백을 넉넉히
@@ -383,7 +385,7 @@ export function drawProclamation(
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   const bodyPx = 39;
-  const bodyLh = bodyPx + 21;
+  const bodyLh = bodyPx + 15;
   const indent = 42; // 번호 항목 이어지는 줄 들여쓰기
   let y = 966;
 
@@ -398,13 +400,13 @@ export function drawProclamation(
   };
 
   drawClause("1. 귀하의 그동안의 노고에 깊은 경의를 표합니다.");
-  y += 6;
+  y += 4;
   drawClause(
     `2. 이에 「${holder}」을(를) 아래와 같이 개인 법정 공휴일로 지정하고, 그 효력을 이에 엄숙히 선포합니다.`
   );
 
   // 가·나·다 세부 항목
-  y += 16;
+  y += 10;
   const subLabelX = LM + 52;
   const subValueX = LM + 240;
   const subValueW = RM - subValueX;
@@ -416,7 +418,7 @@ export function drawProclamation(
   ctx.fillStyle = SEAL_RED;
   ctx.font = `700 46px ${SERIF}`;
   ctx.fillText(dateText, subValueX, y);
-  y += 70;
+  y += 64;
 
   // 나. 명칭 (하이라이트 박스)
   ctx.fillStyle = SUBINK;
@@ -430,7 +432,7 @@ export function drawProclamation(
   ctx.fillRect(subValueX - 12, y - nameFit.px * 0.72, nw + 24, nameFit.px * 1.44);
   ctx.fillStyle = "#8a5a12";
   ctx.fillText(nameLabel, subValueX, y);
-  y += 70;
+  y += 64;
 
   // 다. 사유 (필요 시 2줄 줄바꿈)
   ctx.fillStyle = SUBINK;
@@ -443,17 +445,18 @@ export function drawProclamation(
   reasonFit.lines.forEach((ln, i) => {
     ctx.fillText(ln, subValueX, y + i * rLh);
   });
-  y += (reasonFit.lines.length - 1) * rLh + 66;
+  y += (reasonFit.lines.length - 1) * rLh + 52;
 
   // 3. 효력 확인
   drawClause(
     "3. 상기인은 지정일 당일, 일체의 업무 연락 및 사회적 책무로부터 합법적으로 면제됨을 확인합니다.  끝."
   );
 
-  // ── 하단: 굵은 선 · 발신명의 · 관인 · 워터마크 ──────────────────────────
+  // ── 하단: 굵은 선 · 발신명의 · 관인 · 선포인 자필 서명 · 워터마크 ──────────
   // 실제 공문처럼 발신 명의를 하단에 고정 배치한다. 본문은 위에서 넉넉히
   // 압축돼 항상 이 위치 위에서 끝나므로 겹치지 않는다. (초장문일 때만 아래로 흐름)
-  const sepY = Math.max(1668, y + 20);
+  // 하단 블록(발신명의·서명·워터마크)이 항상 지면 안에 들어오도록 sepY를 상한 고정.
+  const sepY = Math.min(Math.max(1548, y + 20), 1600);
   ctx.strokeStyle = RULE;
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -462,19 +465,54 @@ export function drawProclamation(
   ctx.stroke();
 
   // 발신 명의 — 관인과 겹치지 않도록 폰트를 줄이고 왼쪽으로 살짝 이동
-  const signY = sepY + 76;
+  const signY = sepY + 58;
   ctx.fillStyle = INK;
-  ctx.font = `700 40px ${SERIF}`;
+  ctx.font = `700 38px ${SERIF}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   centeredSpaced(ctx, `${yy}년  나만의 공휴일 위원회 위원장`, cx - 78, signY, 1);
-  drawSeal(ctx, RM - 56, signY, 50);
+  drawSeal(ctx, RM - 56, signY, 48);
+
+  // ── 선포인 자필 서명란 (공문서에 결재하듯 직접 사인) ──────────────────────
+  const sigY = sepY + 142;
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = SUBINK;
+  ctx.font = `600 30px ${SANS}`;
+  const labelEnd = spacedLabel(ctx, "선포인 서명", LM, sigY, 6);
+  const ulX1 = labelEnd + 24;
+  const ulX2 = RM - 128; // 관인과 겹치지 않게 우측 여유
+  const ulY = sigY + 26;
+  ctx.strokeStyle = HAIR;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(ulX1, ulY);
+  ctx.lineTo(ulX2, ulY);
+  ctx.stroke();
+
+  const sig = data.signature;
+  if (sig && (sig.naturalWidth || sig.width)) {
+    const iw = sig.naturalWidth || sig.width;
+    const ih = sig.naturalHeight || sig.height;
+    const availW = ulX2 - ulX1 - 16;
+    const maxH = 72;
+    const scale = Math.min(availW / iw, maxH / ih);
+    const w = iw * scale;
+    const h = ih * scale;
+    const dx = ulX1 + (ulX2 - ulX1 - w) / 2;
+    const dy = ulY - 5 - h; // 밑줄 위에 앉도록
+    ctx.drawImage(sig, dx, dy, w, h);
+  } else {
+    ctx.fillStyle = "rgba(86,91,104,0.5)";
+    ctx.font = `400 26px ${SANS}`;
+    ctx.textAlign = "center";
+    ctx.fillText("직접 사인하면 여기에 새겨집니다", (ulX1 + ulX2) / 2, sigY);
+  }
 
   // 워터마크 (바이럴 루프: 이미지를 본 사람이 사이트를 찾도록)
   const wm = data.site
     ? `나도 만들기 · ${data.site}`
     : "나도 만들기 · 나만의 공휴일";
-  const wmY = signY + 68;
+  const wmY = sepY + 200;
   ctx.fillStyle = SUBINK;
   ctx.font = `600 24px ${SANS}`;
   ctx.textAlign = "center";
