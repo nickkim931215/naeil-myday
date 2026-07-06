@@ -84,10 +84,6 @@ export default function HolidayApp() {
         <p className="mt-3 w-full text-balance bg-gradient-to-r from-gold to-crimson bg-clip-text pb-1 text-lg font-black leading-tight text-transparent sm:text-xl md:text-2xl">
           대체공휴일 말고, 나만의 대체공휴(생)일!
         </p>
-        <p className="mt-4 w-full max-w-md text-balance text-sm leading-6 text-muted sm:text-base">
-          세상의 모든 <b>내일(Tomorrow)</b>을 위해, 오늘은 나의{" "}
-          <b>내 일(My Day)</b>을 멈출 권리.
-        </p>
       </header>
 
       {/* 단계 표시 */}
