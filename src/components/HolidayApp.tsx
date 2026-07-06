@@ -12,6 +12,7 @@ import {
   pickRandomWeekday,
   toBirthdayKey,
 } from "@/lib/holidays";
+import { sfx } from "@/lib/sfx";
 
 type Step = "setup" | "pick" | "proclaim";
 type Tab = "proclaim" | "ooo";
@@ -53,9 +54,11 @@ export default function HolidayApp() {
       const d = pickRandomWeekday(setup.year, birthdayKey);
       setSpinning(false);
       if (d) {
+        sfx("sparkle"); // 당첨! 축포음
         setSelected(d);
         setStep("proclaim");
       } else {
+        sfx("error");
         showToast("어라, 뽑을 평일이 없네요. 다른 해로 바꿔볼까요?");
       }
     }, 750);
@@ -117,6 +120,7 @@ export default function HolidayApp() {
               type="button"
               onClick={handleRoulette}
               disabled={spinning}
+              data-sfx="dice"
               className="flex items-center gap-2 rounded-2xl bg-gold px-6 py-3.5 text-base font-bold text-ink shadow-lg shadow-gold/20 transition hover:brightness-110 active:scale-[0.99] disabled:opacity-70"
             >
               <span className={spinning ? "animate-spin-fast" : ""}>🎲</span>
@@ -145,6 +149,7 @@ export default function HolidayApp() {
                 <button
                   key={t.key}
                   type="button"
+                  data-sfx="select"
                   onClick={() => setTab(t.key)}
                   className={`rounded-full px-5 py-2 text-sm font-bold transition ${
                     tab === t.key

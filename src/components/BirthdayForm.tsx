@@ -44,6 +44,7 @@ export default function BirthdayForm({ onSubmit }: BirthdayFormProps) {
               <button
                 key={y}
                 type="button"
+                data-sfx="select"
                 onClick={() => setYear(y)}
                 className={`rounded-2xl border px-4 py-3 text-lg font-bold transition ${
                   active
@@ -102,6 +103,7 @@ export default function BirthdayForm({ onSubmit }: BirthdayFormProps) {
 
       <button
         type="submit"
+        data-sfx="sparkle"
         className="w-full rounded-2xl bg-gradient-to-r from-gold to-crimson px-6 py-4 text-lg font-extrabold text-ink shadow-lg shadow-crimson/20 transition hover:brightness-110 active:scale-[0.99]"
       >
         나만의 공휴일 찾으러 가기 →

@@ -134,6 +134,7 @@ export default function HolidayCalendar({
             <button
               key={info.date}
               type="button"
+              data-sfx={info.status === "valid" ? "select" : "error"}
               onClick={() => handleClick(info)}
               title={info.reason ?? "순수 평일 — 선택 가능!"}
               className={`relative aspect-square rounded-xl border text-sm font-semibold transition ${

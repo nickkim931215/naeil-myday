@@ -11,6 +11,7 @@ import {
 } from "@/lib/proclamation";
 import ShareIcon from "./ShareIcon";
 import { fallbackHint, shareCanvas, shareLink, siteHost, siteUrl } from "@/lib/share";
+import { sfx } from "@/lib/sfx";
 
 interface ProclamationCardProps {
   /** 선택된 "YYYY-MM-DD" */
@@ -66,6 +67,7 @@ export default function ProclamationCard({
     a.click();
     document.body.removeChild(a);
     setSaved(true);
+    sfx("sparkle"); // 저장 완료 축포음
     window.setTimeout(() => setSaved(false), 2400);
   };
 
@@ -82,6 +84,7 @@ export default function ProclamationCard({
         url: siteUrl(),
       }
     );
+    if (result.status === "shared") sfx("sparkle");
     if (result.status === "downloaded") {
       setShareMsg(fallbackHint("인스타 스토리", result.reason));
       window.setTimeout(() => setShareMsg(null), 6000);
@@ -94,6 +97,7 @@ export default function ProclamationCard({
       title: "나만의 공휴일",
       text: "나라가 안 주면 내가 만든다! 너도 평일 하루 골라 공휴일 선포해봐 👇",
     });
+    if (r === "shared" || r === "copied") sfx("sparkle");
     if (r === "copied") setShareMsg("초대 링크를 복사했어요! 친구에게 붙여넣기 하세요 📋");
     else if (r === "failed") setShareMsg("링크 공유에 실패했어요. 주소창의 URL을 복사해 보내주세요!");
     if (r === "copied" || r === "failed")
@@ -166,6 +170,7 @@ export default function ProclamationCard({
             <button
               key={p}
               type="button"
+              data-sfx="select"
               onClick={() => onNameChange(p.slice(0, NAME_MAX))}
               className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold transition hover:bg-gold/20"
             >
@@ -196,6 +201,7 @@ export default function ProclamationCard({
             <button
               key={p}
               type="button"
+              data-sfx="select"
               onClick={() => setReason(p.slice(0, REASON_MAX))}
               className="rounded-full border border-crimson/25 bg-crimson/10 px-3 py-1.5 text-xs font-medium text-crimson transition hover:bg-crimson/20"
             >
@@ -222,6 +228,7 @@ export default function ProclamationCard({
           </button>
           <button
             type="button"
+            data-sfx="dice"
             onClick={fillRandom}
             className="w-full rounded-2xl px-6 py-2.5 text-sm font-semibold text-muted transition hover:text-gold"
           >

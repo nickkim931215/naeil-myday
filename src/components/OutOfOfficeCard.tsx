@@ -6,6 +6,7 @@ import { NAME_PRESETS } from "@/lib/proclamation";
 import { OOO_H, OOO_W, VIBES, drawOutOfOffice } from "@/lib/ooo";
 import ShareIcon from "./ShareIcon";
 import { fallbackHint, shareCanvas, shareLink, siteHost, siteUrl } from "@/lib/share";
+import { sfx } from "@/lib/sfx";
 
 interface OutOfOfficeCardProps {
   /** 선택된 "YYYY-MM-DD" */
@@ -70,6 +71,7 @@ export default function OutOfOfficeCard({
     a.click();
     document.body.removeChild(a);
     setSaved(true);
+    sfx("sparkle"); // 저장 완료 축포음
     window.setTimeout(() => setSaved(false), 2400);
   };
 
@@ -82,6 +84,7 @@ export default function OutOfOfficeCard({
       text: "오늘은 저의 셀프 국경일입니다. #나만의공휴일",
       url: siteUrl(),
     });
+    if (result.status === "shared") sfx("sparkle");
     if (result.status === "downloaded") {
       setShareMsg(fallbackHint("프로필", result.reason));
       window.setTimeout(() => setShareMsg(null), 6000);
@@ -94,6 +97,7 @@ export default function OutOfOfficeCard({
       title: "나만의 공휴일",
       text: "나라가 안 주면 내가 만든다! 너도 평일 하루 골라 공휴일 선포해봐 👇",
     });
+    if (r === "shared" || r === "copied") sfx("sparkle");
     if (r === "copied") setShareMsg("초대 링크를 복사했어요! 친구에게 붙여넣기 하세요 📋");
     else if (r === "failed") setShareMsg("링크 공유에 실패했어요. 주소창의 URL을 복사해 보내주세요!");
     if (r === "copied" || r === "failed")
@@ -149,6 +153,7 @@ export default function OutOfOfficeCard({
             <button
               key={p}
               type="button"
+              data-sfx="select"
               onClick={() => onNameChange(p.slice(0, NAME_MAX))}
               className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold transition hover:bg-gold/20"
             >
@@ -169,6 +174,7 @@ export default function OutOfOfficeCard({
                 <button
                   key={v.key}
                   type="button"
+                  data-sfx="select"
                   onClick={() => pickVibe(v.key)}
                   className={`flex items-center gap-1.5 rounded-2xl border px-3.5 py-2 text-sm font-semibold transition ${
                     active
@@ -220,6 +226,7 @@ export default function OutOfOfficeCard({
           </button>
           <button
             type="button"
+            data-sfx="dice"
             onClick={randomVibe}
             className="w-full rounded-2xl px-6 py-2.5 text-sm font-semibold text-muted transition hover:text-gold"
           >
